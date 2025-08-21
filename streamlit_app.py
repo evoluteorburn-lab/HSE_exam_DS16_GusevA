@@ -138,7 +138,7 @@ def show_apartment_search():
         class_input = st.selectbox('Класс квартиры', options=[None] + class_options)
         
         area_min = st.number_input('Площадь от (м²)', min_value=0.0, value=0.0)
-        area_max = st.number_input('Площадь до (м²)', min_value=0.0, value=200.0)
+        area_max = st.number_input('Площадь до (м²)', min_value=0.0, value=0.0)
     
     with col2:
         st.subheader("Дополнительные параметры")
@@ -147,7 +147,7 @@ def show_apartment_search():
         rooms_input = st.selectbox('Комнат', options=[None] + rooms_options)
         
         floor_min = st.number_input('Этаж от', min_value=0, value=0)
-        floor_max = st.number_input('Этаж до', min_value=0, value=50)
+        floor_max = st.number_input('Этаж до', min_value=0, value=0)
         
         district_options = get_unique_values('Район Город', ['ЦАО', 'САО', 'ЮАО', 'ЗАО', 'СВАО', 'ЮЗАО', 'ВАО'])
         district_input = st.selectbox('Район', options=[None] + district_options)
