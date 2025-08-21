@@ -5,26 +5,45 @@ warnings.filterwarnings("ignore", message="No runtime found, using MemoryCacheSt
 import streamlit as st
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 from datetime import datetime
 import requests
 from io import BytesIO
-import tempfile
-import os
-import base64
-from pptx import Presentation
-from pptx.util import Inches
 
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import PolynomialFeatures, StandardScaler, OneHotEncoder
-from sklearn.linear_model import LinearRegression
-from sklearn.pipeline import Pipeline, make_pipeline
-from sklearn.compose import ColumnTransformer
-from sklearn.impute import SimpleImputer
-from sklearn import metrics
-from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
-from joblib import dump, load
+try:
+    import matplotlib.pyplot as plt
+    MATPLOTLIB_AVAILABLE = True
+except ImportError:
+    MATPLOTLIB_AVAILABLE = False
+    st.warning("Matplotlib не установлен. Некоторые графики будут недоступны.")
+
+try:
+    import seaborn as sns
+    SEABORN_AVAILABLE = True
+except ImportError:
+    SEABORN_AVAILABLE = False
+
+try:
+    from sklearn.model_selection import train_test_split
+    from sklearn.preprocessing import PolynomialFeatures, StandardScaler, OneHotEncoder
+    from sklearn.linear_model import LinearRegression
+    from sklearn.pipeline import Pipeline
+    from sklearn.compose import ColumnTransformer
+    from sklearn.impute import SimpleImputer
+    from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
+    SKLEARN_AVAILABLE = True
+except ImportError:
+    SKLEARN_AVAILABLE = False
+    st.error("Библиотека scikit-learn не установлена. Функция прогнозирования будет недоступна.")
+
+try:
+    import tempfile
+    import os
+    import base64
+    from pptx import Presentation
+    from pptx.util import Inches
+    PPTX_AVAILABLE = True
+except ImportError:
+    PPTX_AVAILABLE = False
 
 st.set_page_config(
     page_title="Анализ рынка недвижимости - Полный анализ",
@@ -79,11 +98,18 @@ data = load_data_from_github()
 st.title("🏠 Комплексный анализ рынка недвижимости")
 st.write(f"Данные загружены: {len(data)} строк, {len(data.columns)} колонок")
 
+if not SKLEARN_AVAILABLE:
+    st.error("⚠️ Библиотека scikit-learn не установлена. Функция прогнозирования будет недоступна.")
+
+if not MATPLOTLIB_AVAILABLE:
+    st.warning("⚠️ Библиотека matplotlib не установлена. Некоторые графики будут недоступны.")
+
 st.sidebar.title("Навигация")
-section = st.sidebar.radio("Выберите раздел:", [
-    "Поиск квартир", 
-    "Прогнозирование",
-])
+section_options = ["Поиск квартир"]
+if SKLEARN_AVAILABLE:
+    section_options.append("Прогнозирование")
+
+section = st.sidebar.radio("Выберите раздел:", section_options)
 
 if 'filtered_apartments' not in st.session_state:
     st.session_state.filtered_apartments = None
@@ -112,7 +138,7 @@ def show_apartment_search():
         class_input = st.selectbox('Класс квартиры', options=[None] + class_options)
         
         area_min = st.number_input('Площадь от (м²)', min_value=0.0, value=0.0)
-        area_max = st.number_input('Площадь до (м²)', min_value=0.0, value=0.0)
+        area_max = st.number_input('Площадь до (м²)', min_value=0.0, value=200.0)
     
     with col2:
         st.subheader("Дополнительные параметры")
@@ -121,7 +147,7 @@ def show_apartment_search():
         rooms_input = st.selectbox('Комнат', options=[None] + rooms_options)
         
         floor_min = st.number_input('Этаж от', min_value=0, value=0)
-        floor_max = st.number_input('Этаж до', min_value=0, value=0)
+        floor_max = st.number_input('Этаж до', min_value=0, value=50)
         
         district_options = get_unique_values('Район Город', ['ЦАО', 'САО', 'ЮАО', 'ЗАО', 'СВАО', 'ЮЗАО', 'ВАО'])
         district_input = st.selectbox('Район', options=[None] + district_options)
@@ -181,7 +207,7 @@ def show_apartment_search():
             st.success(f"Найдено {len(filtered_df)} объектов")
             st.session_state.filtered_apartments = filtered_df
             
-            price_column = 'Цена кв м' if 'Цена кв м' in filtered_df.columns else 'Цена'
+            price_column = 'Цена кв м' if 'Цена кв m' in filtered_df.columns else 'Цена'
             if price_column in filtered_df.columns:
                 col1, col2, col3 = st.columns(3)
                 with col1:
@@ -194,13 +220,18 @@ def show_apartment_search():
             display_columns = ['Номер квартиры', 'Площадь', 'Комнат', 'Этаж', 'Район Город', 'Цена кв м', 'Класс К....']
             display_columns.extend([col for col in infra_columns if col in filtered_df.columns])
             
+            available_columns = [col for col in display_columns if col in filtered_df.columns]
+            
+            display_df = filtered_df[available_columns].copy()
+            display_df.rename(columns={
+                'Класс К....': 'Класс',
+                'Район Город': 'Район',
+                'Цена кв м': 'Цена за м²',
+                'Номер квартиры': '№ Квартиры'
+            }, inplace=True)
+            
             st.dataframe(
-                filtered_df[display_columns].rename(columns={
-                    'Класс К....': 'Класс',
-                    'Район Город': 'Район',
-                    'Цена кв м': 'Цена за м²',
-                    'Номер квартиры': '№ Квартиры'
-                }).style.format({
+                display_df.style.format({
                     'Цена за м²': '{:,.0f} руб.',
                     'Площадь': '{:.1f} м²',
                     '№ Квартиры': '{:.0f}'
@@ -208,11 +239,19 @@ def show_apartment_search():
                 height=400
             )
             
-            if st.button("📊 Сделать прогноз для найденных квартир"):
-                st.session_state.target_section = "Прогнозирование"
-                st.rerun()
+            # Кнопка для перехода к прогнозированию (только если scikit-learn доступен)
+            if SKLEARN_AVAILABLE:
+                if st.button("📊 Сделать прогноз для найденных квартир"):
+                    st.session_state.target_section = "Прогнозирование"
+                    st.rerun()
+            else:
+                st.warning("Функция прогнозирования недоступна (требуется scikit-learn)")
 
 def show_polynomial_regression():
+    if not SKLEARN_AVAILABLE:
+        st.error("Функция прогнозирования недоступна. Установите scikit-learn.")
+        return
+        
     st.header("📈 Прогнозирование цен на 2026 год")
     
     st.info("""
@@ -359,7 +398,6 @@ def show_polynomial_regression():
             
         except Exception as e:
             st.error(f"Ошибка при обучении модели: {str(e)}")
-            st.exception(e)
 
 if 'target_section' in st.session_state:
     section = st.session_state.target_section
@@ -367,5 +405,5 @@ if 'target_section' in st.session_state:
 
 if section == "Поиск квартир":
     show_apartment_search()
-elif section == "Прогнозирование":
+elif section == "Прогнозирование" and SKLEARN_AVAILABLE:
     show_polynomial_regression()
