@@ -274,7 +274,7 @@ def show_polynomial_regression():
     categorical_cols = analysis_data.select_dtypes(include=['object']).columns.tolist()
     
     target_col = st.selectbox("Целевая переменная (y):", 
-                             options=['Цена кв м', 'Цена', 'Площадь'],
+                             options=['Цена кв м', 'Цена'],
                              index=0)
     
     if target_col not in analysis_data.columns:
