@@ -238,14 +238,7 @@ def show_apartment_search():
                 }),
                 height=400
             )
-            
-            # Кнопка для перехода к прогнозированию (только если scikit-learn доступен)
-            if SKLEARN_AVAILABLE:
-                if st.button("📊 Сделать прогноз для найденных квартир"):
-                    st.session_state.target_section = "Прогнозирование"
-                    st.rerun()
-            else:
-                st.warning("Функция прогнозирования недоступна (требуется scikit-learn)")
+        
 
 def show_polynomial_regression():
     if not SKLEARN_AVAILABLE:
