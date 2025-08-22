@@ -288,6 +288,14 @@ def show_polynomial_regression():
     selected_features = st.multiselect("Признаки для модели (X):", 
                                       options=available_features,
                                       default=['Площадь', 'Комнат', 'Этаж'])
+
+    col1 = st.columns([3, 1])
+    with col1:
+    st.write("")  # Отступ для выравнивания
+    st.write("")  # Отступ для выравнивания
+    if st.button("Выбрать все", key="select_all_btn"):
+        selected_features = available_features
+        st.rerun()
     
     if not selected_features:
         st.warning("Выберите хотя бы один признак для построения модели")
