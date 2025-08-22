@@ -283,7 +283,7 @@ def show_polynomial_regression():
     with col2:
         test_size = st.slider("Размер тестовой выборки", 0.1, 0.5, 0.3)
     with col3:
-        random_state = st.number_input("Random state", 0, 100, 42)
+        random_state = st.number_input("Случайное зерно: по умолчанию 42", 0, 100, 42)
     
     if st.button("Обучить модель", type='primary'):
         try:
