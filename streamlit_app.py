@@ -33,16 +33,6 @@ try:
 except ImportError:
     SKLEARN_AVAILABLE = False
 
-try:
-    import tempfile
-    import os
-    import base64
-    from pptx import Presentation
-    from pptx.util import Inches
-    PPTX_AVAILABLE = True
-except ImportError:
-    PPTX_AVAILABLE = False
-
 st.set_page_config(
     page_title="Анализ рынка недвижимости - Полный анализ",
     page_icon="🏠",
@@ -257,9 +247,22 @@ def show_polynomial_regression():
     available_features = [col for col in available_features 
                          if col not in price_columns_to_exclude and col in analysis_data.columns]
     
-    selected_features = st.multiselect("Признаки для модели (X):", 
-                                      options=available_features,
-                                      default=['Площадь', 'Комнат', 'Этаж'])
+    col1, col2 = st.columns([3, 1])
+    
+    with col1:
+        selected_features = st.multiselect("Признаки для модели (X):", 
+                                          options=available_features,
+                                          default=['Площадь', 'Комнат', 'Этаж'])
+    
+    with col2:
+        st.write("")
+        st.write("")
+        if st.button("Выбрать все доступные"):
+            available_features_with_data = []
+            for feature in available_features:
+                if analysis_data[feature].notna().sum() > 0:
+                    available_features_with_data.append(feature)
+            selected_features = available_features_with_data
     
     if not selected_features:
         st.warning("Выберите хотя бы один признак для построения модели")
