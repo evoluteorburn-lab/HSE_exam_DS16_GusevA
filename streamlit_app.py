@@ -262,11 +262,20 @@ def show_polynomial_regression():
         st.write("")
         st.write("")
         if st.button("Выбрать все доступные"):
-            available_features_with_data = []
-            for feature in available_features:
-                if analysis_data[feature].notna().sum() > 0:
-                    available_features_with_data.append(feature)
-                selected_features = available_features_with_data
+            available_features_with_data = [
+                feature for feature in available_features
+                if analysis_data[feature].notna().sum() > 0
+            ]
+            st.session_state.selected_features = available_features_with_data  # сохраняем
+            st.success("✅ Все доступные признаки выбраны!")
+
+
+    selected_features = st.multiselect(
+        "Признаки для модели (X):",
+        options=available_features,
+        default=st.session_state.get("selected_features", ['Площадь', 'Комнат', 'Этаж'])
+    )
+
     
     if not selected_features:
         st.warning("Выберите хотя бы один признак для построения модели")
