@@ -251,33 +251,29 @@ def show_polynomial_regression():
                                 'Сдача К','Зона','Отделка текст','Старт продаж К','Изменение цены последнее','Экспозиция','Изменение цены']
     available_features = [col for col in available_features 
                          if col not in price_columns_to_exclude and col in analysis_data.columns]
-    
+
+    default_feats = [c for c in ['Площадь', 'Комнат', 'Этаж'] if c in available_features]
+    if 'selected_features' not in st.session_state:
+        st.session_state.selected_features = default_feats
+
     col1, col2 = st.columns([3, 1])
-    
-    with col1:
-        selected_features = st.multiselect("Признаки для модели (X):", 
-                                          options=available_features,
-                                          default=['Площадь', 'Комнат', 'Этаж'])
+
     with col2:
-        st.write("")
-        st.write("")
-        if st.button("Выбрать все доступные"):
-            available_features_with_data = [
-                feature for feature in available_features
-                if analysis_data[feature].notna().sum() > 0
-            ]
-            st.session_state.selected_features = available_features_with_data  # сохраняем
-            st.success("✅ Все доступные признаки выбраны!")
+        st.write(""); st.write("")
+        if st.button("Выбрать все доступные", key="btn_select_all"):
+                st.session_state.selected_features = [
+                    f for f in available_features
+                    if f in analysis_data.columns and analysis_data[f].notna().any()
+                ]
 
+    with col1:
+            selected_features = st.multiselect(
+                "Признаки для модели (X):",
+                options=available_features,
+                key="selected_features"   # важен ключ — он связывает виджет с session_state
+            )
 
-    selected_features = st.multiselect(
-        "Признаки для модели (X):",
-        options=available_features,
-        default=st.session_state.get("selected_features", ['Площадь', 'Комнат', 'Этаж'])
-    )
-
-    
-    if not selected_features:
+   if not selected_features:
         st.warning("Выберите хотя бы один признак для построения модели")
         return
     
