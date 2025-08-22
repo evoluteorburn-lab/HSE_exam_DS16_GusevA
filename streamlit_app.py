@@ -244,7 +244,7 @@ def show_polynomial_regression():
     
     available_features = [col for col in numeric_cols + categorical_cols 
                          if col != target_col and col != 'Номер квартиры']
-    price_columns_to_exclude = ['Цена кв м', 'Цена', 'Цена со скидкой', 'Изменение цены последнее', 'Изменение цены']
+    price_columns_to_exclude = ['Цена кв м', 'Цена', 'Цена со скидкой', 'Изменение цены последнее', 'Изменение цены','Номер на этаже', 'Номер секции', 'Отделка текст', 'ЖК англ', 'Изменение цены',]
     available_features = [col for col in available_features 
                          if col not in price_columns_to_exclude and col in analysis_data.columns]
     
