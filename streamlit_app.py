@@ -185,5 +185,3 @@ def show_polynomial_regression():
             
         except Exception as e:
             st.error(f"Ошибка при обучении модели: {str(e)}")
-
-Найти еще
