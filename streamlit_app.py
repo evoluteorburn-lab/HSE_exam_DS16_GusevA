@@ -273,10 +273,6 @@ def show_polynomial_regression():
                 key="selected_features"   # важен ключ — он связывает виджет с session_state
             )
 
-   if not selected_features:
-        st.warning("Выберите хотя бы один признак для построения модели")
-        return
-    
     temp_data = analysis_data[selected_features + [target_col]].copy()
     initial_count = len(temp_data)
     temp_data = temp_data.dropna()
