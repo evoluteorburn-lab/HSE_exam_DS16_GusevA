@@ -143,6 +143,16 @@ def show_apartment_search():
     
     for i, col_name in enumerate(infra_columns):
         if col_name in data.columns:
+            options = get_unique_values(col_name, [])
+            with infra_cols[i]:
+                infrastructure_options[col_name] = st.selectbox(
+                    col_name,
+                    options=[None] + options,
+                    key=f"infra_{col_name}"
+                )
+    
+    for i, col_name in enumerate(infra_columns):
+        if col_name in data.columns:
             numeric_values = pd.to_numeric(data[col_name], errors='coerce').dropna()
             if not numeric_values.empty:
                 min_val = numeric_values.min()
