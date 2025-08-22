@@ -238,9 +238,6 @@ def show_apartment_search():
                 }),
                 height=400
             )
-            
-            else:
-                st.warning("Функция прогнозирования недоступна (требуется scikit-learn)")
 
 def show_polynomial_regression():
     if not SKLEARN_AVAILABLE:
