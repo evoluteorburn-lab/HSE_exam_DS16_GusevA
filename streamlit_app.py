@@ -273,12 +273,10 @@ def show_polynomial_regression():
         st.error(f"Колонка '{target_col}' не найдена в данных!")
         return
     
-    available_features = [col for col in numeric_cols + categorical_cols 
-                         if col != target_col and col != 'Номер квартиры']
+    available_features = [col for col in numeric_cols + categorical_cols if col != target_col and col != 'Номер квартиры']
     price_columns_to_exclude = ['Цена кв м', 'Цена', 'Цена со скидкой', 'Изменение цены последнее', 'Изменение цены']
-    available_features = [col for col in available_features 
+    available_features = [col for col in numeric_cols + categorical_cols 
                          if col not in price_columns_to_exclude and col in analysis_data.columns]
-    
     selected_features = st.multiselect("Признаки для модели (X):", 
                                       options=available_features,
                                       default=['Площадь', 'Комнат', 'Этаж'])
@@ -286,25 +284,6 @@ def show_polynomial_regression():
     if not selected_features:
         st.warning("Выберите хотя бы один признак для построения модели")
         return
-    
-    # Проверка наличия данных после фильтрации по выбранным признакам
-    temp_data = analysis_data[selected_features + [target_col]].copy()
-    initial_count = len(temp_data)
-    temp_data = temp_data.dropna()
-    final_count = len(temp_data)
-    
-    if final_count == 0:
-        st.error("""
-        ❌ После обработки пропусков в выбранных признаках не осталось данных!
-        
-        **Рекомендации:**
-        1. Выберите другие признаки с меньшим количеством пропусков
-        2. Используйте меньше признаков
-        3. Попробуйте использовать все данные вместо отфильтрованных
-        """)
-        return
-    
-    st.info(f"Данные для обучения: {final_count} из {initial_count} записей (удалено {initial_count - final_count} записей с пропусками)")
     
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -316,9 +295,17 @@ def show_polynomial_regression():
     
     if st.button("Обучить модель", type='primary'):
         try:
-            # Используем уже подготовленные данные без пропусков
-            X = temp_data[selected_features].copy()
-            y = temp_data[target_col]
+            X = analysis_data[selected_features].copy()
+            y = analysis_data[target_col]
+            
+            original_indices = X.index
+            
+            X = X.dropna()
+            y = y.loc[X.index]
+            
+            if len(X) == 0:
+                st.error("После обработки пропусков не осталось данных!")
+                return
             
             numeric_features = X.select_dtypes(include=['int64', 'float64']).columns.tolist()
             categorical_features = X.select_dtypes(include=['object']).columns.tolist()
@@ -367,11 +354,10 @@ def show_polynomial_regression():
             st.session_state.model_features = selected_features
             st.session_state.target_column = target_col
             
-            # Прогноз для всех данных (с обработкой пропусков)
-            all_predictions = model.predict(full_pipeline.transform(X))
+            all_predictions = model.predict(full_pipeline.transform(analysis_data[selected_features]))
             
-            forecast_df = analysis_data.loc[X.index, ['Номер квартиры'] + selected_features].copy()
-            forecast_df['Фактическая цена'] = y
+            forecast_df = analysis_data[['Номер квартиры'] + selected_features].copy()
+            forecast_df['Фактическая цена'] = analysis_data[target_col]
             forecast_df['Прогноз на 2026 год'] = all_predictions
             forecast_df['Изменение, %'] = ((forecast_df['Прогноз на 2026 год'] - forecast_df['Фактическая цена']) / 
                                          forecast_df['Фактическая цена'] * 100)
@@ -396,28 +382,20 @@ def show_polynomial_regression():
             with col4:
                 st.metric("Обучено на", f"{len(X_train)} samples")
             
-            # Визуализация результатов
-            if MATPLOTLIB_AVAILABLE:
-                fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
-                
-                # График фактических vs предсказанных значений
-                ax1.scatter(y_test, y_pred, alpha=0.5)
-                ax1.plot([y.min(), y.max()], [y.min(), y.max()], 'r--', lw=2)
-                ax1.set_xlabel('Фактические значения')
-                ax1.set_ylabel('Предсказанные значения')
-                ax1.set_title('Фактические vs Предсказанные значения')
-                
-                # График остатков
-                residuals = y_test - y_pred
-                ax2.scatter(y_pred, residuals, alpha=0.5)
-                ax2.axhline(y=0, color='r', linestyle='--')
-                ax2.set_xlabel('Предсказанные значения')
-                ax2.set_ylabel('Остатки')
-                ax2.set_title('Анализ остатков')
-                
-                plt.tight_layout()
-                st.pyplot(fig)
+            test_results_df = pd.DataFrame({
+                'Actual': y_test.values,
+                'Predicted': y_pred,
+                'Residual': y_test.values - y_pred
+            }).round(2)
             
         except Exception as e:
             st.error(f"Ошибка при обучении модели: {str(e)}")
-            st.error("Попробуйте уменьшить степень полинома или выбрать другие признаки")
+
+if 'target_section' in st.session_state:
+    section = st.session_state.target_section
+    del st.session_state.target_section
+
+if section == "Поиск квартир":
+    show_apartment_search()
+elif section == "Прогнозирование" and SKLEARN_AVAILABLE:
+    show_polynomial_regression()
