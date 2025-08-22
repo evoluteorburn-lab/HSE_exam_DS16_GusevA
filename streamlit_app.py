@@ -207,7 +207,7 @@ def show_apartment_search():
             st.success(f"Найдено {len(filtered_df)} объектов")
             st.session_state.filtered_apartments = filtered_df
             
-            price_column = 'Цена кв м' if 'Цена кв m' in filtered_df.columns else 'Цена'
+            price_column = 'Цена кв м' if 'Цена кв м' in filtered_df.columns else 'Цена'
             if price_column in filtered_df.columns:
                 col1, col2, col3 = st.columns(3)
                 with col1:
