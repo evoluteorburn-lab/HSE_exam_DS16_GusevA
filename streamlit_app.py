@@ -285,16 +285,13 @@ def show_polynomial_regression():
     price_columns_to_exclude = ['Цена кв м', 'Цена', 'Цена со скидкой', 'Изменение цены последнее', 'Изменение цены']
     available_features = [col for col in numeric_cols + categorical_cols 
                      if col not in price_columns_to_exclude]
+
+    col11, col12 = st.columns([3, 1])
+    
+    with col11:  
     #selected_features = st.multiselect("Признаки для модели (X):", 
                                       #options=available_features,
                                       #default=['Площадь', 'Комнат', 'Этаж'])
-
-    #with col11:  
-       # selected_features = st.multiselect("Признаки для модели (X):", 
-                                      options=available_features,
-                                      default=['Площадь', 'Комнат', 'Этаж'])
-    col12 = st.columns([3, 1])
-
     with col12:  
         st.write("")  
         st.write("")  
