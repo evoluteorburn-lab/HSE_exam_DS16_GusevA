@@ -259,12 +259,8 @@ def show_polynomial_regression():
         st.write("")
         st.write("")
         if st.button("Выбрать все доступные"):
-            available_features_with_data = []
-            for feature in available_features:
-                if analysis_data[feature].notna().sum() > 0:
-                    available_features_with_data.append(ffeature)
-            selected_features = available_features_with_data
-    
+            available_features = [col for col in available_features 
+                         if col not in price_columns_to_exclude and col in analysis_data.columns]
     if not selected_features:
         st.warning("Выберите хотя бы один признак для построения модели")
         return
