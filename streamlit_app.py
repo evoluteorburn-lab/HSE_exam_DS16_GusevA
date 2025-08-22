@@ -57,48 +57,6 @@ def load_data_from_github():
 
 data = load_data_from_github()
 
-import streamlit as st
-
-images = [
-    "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=1200",
-    "https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=1200",
-    "https://images.unsplash.com/photo-1572120360610-d971b9d7767c?w=1200",
-    "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200"
-]
-
-st.set_page_config(page_title="Анализ рынка недвижимости", layout="wide")
-
-slideshow_html = f"""
-<style>
-body {{
-  margin: 0;
-  height: 100vh;
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
-  transition: background-image 1s ease-in-out;
-}}
-
-@keyframes slideShow {{
-  0%   {{ background-image: url('{images[0]}'); }}
-  25%  {{ background-image: url('{images[1]}'); }}
-  50%  {{ background-image: url('{images[2]}'); }}
-  75%  {{ background-image: url('{images[3]}'); }}
-  100% {{ background-image: url('{images[0]}'); }}
-}}
-
-body {{
-  animation: slideShow 30s infinite;
-}}
-</style>
-"""
-
-st.markdown(slideshow_html, unsafe_allow_html=True)
-
-st.title("🏠 Комплексный анализ рынка недвижимости")
-st.write("Фон перелистывается каждые несколько секунд — фото домов и апартаментов ✨")
-
-
 st.title("🏠 Комплексный анализ рынка недвижимости")
 st.write(f"Данные загружены: {len(data)} строк, {len(data.columns)} колонок")
 
