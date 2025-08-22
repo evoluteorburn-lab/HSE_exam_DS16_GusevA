@@ -40,7 +40,9 @@ try:
     import os
     import base64
     from pptx import Presentation
-    from pptx.util import Inches
+    from pptx.util import Inches, Pt
+    from pptx.enum.text import PP_ALIGN
+    from pptx.dml.color import RGBColor
     PPTX_AVAILABLE = True
 except ImportError:
     PPTX_AVAILABLE = False
@@ -66,95 +68,13 @@ def load_data_from_github():
         return df
     except Exception as e:
         st.error(f"Ошибка при загрузке данных: {e}")
-        return create_demo_data()
-
-def create_demo_data():
-    data = {
-        'ID Корпуса': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-        'ID ЖК': [101, 101, 102, 103, 103, 104, 105, 106, 107, 108],
-        'ЖК рус': ['ЖК А', 'ЖК А', 'ЖК Б', 'ЖК В', 'ЖК В', 'ЖК Г', 'ЖК Д', 'ЖК Е', 'ЖК Ж', 'ЖК З'],
-        'Комнат': [1, 2, 3, 1, 2, 3, 4, 1, 2, 3],
-        'Площадь': [30.5, 45.2, 60.1, 25.0, 40.0, 75.3, 90.0, 28.5, 42.0, 65.0],
-        'Цена': [5000000, 8000000, 12000000, 4000000, 7000000, 15000000, 20000000, 4500000, 7500000, 13000000],
-        'Цена кв м': [163934, 176991, 199667, 160000, 175000, 199203, 222222, 157895, 178571, 200000],
-        'Этаж': [5, 8, 3, 2, 7, 12, 15, 4, 6, 9],
-        'Район Город': ['ЦАО', 'САО', 'ЮАО', 'ЦАО', 'САО', 'ЮАО', 'ЗАО', 'СВАО', 'ЮЗАО', 'ВАО'],
-        'Тип помещения': ['Квартира', 'Квартира', 'Апартаменты', 'Квартира', 'Апартаменты', 'Квартира', 'Квартира', 'Квартира', 'Апартаменты', 'Квартира'],
-        'Застройщик': ['ПИК', 'Самолет', 'Эталон', 'ПИК', 'Самолет', 'Эталон', 'ПИК', 'Самолет', 'Эталон', 'ПИК'],
-        'Класс К....': ['Комфорт', 'Бизнес', 'Премиум', 'Эконом', 'Комфорт', 'Бизнес', 'Премиум', 'Эконом', 'Комфорт', 'Бизнес'],
-        'Отделка помещения': ['Да', 'Нет', 'Да', 'Нет', 'Да', 'Да', 'Нет', 'Да', 'Нет', 'Да'],
-        'Школа/Детский Сад': ['Рядом', 'Далеко', 'Рядом', 'Далеко', 'Рядом', 'Рядом', 'Далеко', 'Рядом', 'Далеко', 'Рядом'],
-        'Парк/Зона отдыха': ['Рядом', 'Далеко', 'Рядом', 'Далеко', 'Рядом', 'Рядом', 'Далеко', 'Рядом', 'Далеко', 'Рядом'],
-        'Спорт': ['Есть', 'Нет', 'Есть', 'Нет', 'Есть', 'Есть', 'Нет', 'Есть', 'Нет', 'Есть'],
-        'Парковка': ['Подземная', 'Улица', 'Подземная', 'Улица', 'Подземная', 'Подземная', 'Улица', 'Подземная', 'Улица', 'Подземная'],
-        'Рестораны': ['Много', 'Мало', 'Много', 'Мало', 'Много', 'Много', 'Мало', 'Много', 'Мало', 'Много'],
-        'Номер квартиры': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    }
-    return pd.DataFrame(data)
-
-def create_presentation(filtered_data, analysis_results=None):
-    if not PPTX_AVAILABLE:
-        st.error("Библиотека python-pptx не установлена. Невозможно создать презентацию.")
         return None
-    
-    prs = Presentation()
-    
-    title_slide_layout = prs.slide_layouts[0]
-    slide = prs.slides.add_slide(title_slide_layout)
-    title = slide.shapes.title
-    subtitle = slide.placeholders[1]
-    title.text = "Анализ рынка недвижимости"
-    subtitle.text = f"Отчет сгенерирован {datetime.now().strftime('%d.%m.%Y %H:%M')}\nНайдено объектов: {len(filtered_data)}"
-    
-    stats_slide_layout = prs.slide_layouts[5]
-    slide = prs.slides.add_slide(stats_slide_layout)
-    title = slide.shapes.title
-    title.text = "Общая статистика"
-    
-    price_column = 'Цена кв м' if 'Цена кв м' in filtered_data.columns else 'Цена'
-    if price_column in filtered_data.columns:
-        avg_price = filtered_data[price_column].mean()
-        max_price = filtered_data[price_column].max()
-        min_price = filtered_data[price_column].min()
-        
-        rows = [
-            ["Показатель", "Значение"],
-            ["Количество объектов", str(len(filtered_data))],
-            ["Максимальная цена", f"{max_price:,.0f} руб."],
-            ["Средняя цена", f"{avg_price:,.0f} руб."],
-            ["Минимальная цена", f"{min_price:,.0f} руб."]
-        ]
-        
-        x, y, cx, cy = Inches(1), Inches(1.5), Inches(8), Inches(2)
-        shape = slide.shapes.add_table(len(rows), 2, x, y, cx, cy)
-        table = shape.table
-        
-        for i, row in enumerate(rows):
-            for j, cell_value in enumerate(row):
-                table.cell(i, j).text = cell_value
-    
-    if analysis_results:
-        analysis_slide_layout = prs.slide_layouts[5]
-        slide = prs.slides.add_slide(analysis_slide_layout)
-        title = slide.shapes.title
-        title.text = "Результаты прогнозирования"
-        
-        content = f"""
-        Модель прогнозирования обучена на {analysis_results.get('train_samples', 0)} объектах
-        Качество модели (R²): {analysis_results.get('r2_score', 0):.3f}
-        Средняя ошибка прогноза (RMSE): {analysis_results.get('rmse', 0):.2f}
-        """
-        
-        txBox = slide.shapes.add_textbox(Inches(1), Inches(1.5), Inches(8), Inches(2))
-        tf = txBox.text_frame
-        tf.text = content
-    
-    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.pptx')
-    prs.save(temp_file.name)
-    
-    return temp_file.name
 
 data = load_data_from_github()
+
+if data is None:
+    st.error("Не удалось загрузить данные. Пожалуйста, проверьте подключение к интернету.")
+    st.stop()
 
 st.title("🏠 Комплексный анализ рынка недвижимости")
 st.write(f"Данные загружены: {len(data)} строк, {len(data.columns)} колонок")
@@ -183,6 +103,54 @@ if 'target_column' not in st.session_state:
 if 'analysis_results' not in st.session_state:
     st.session_state.analysis_results = None
 
+def create_presentation(filtered_data, analysis_results=None):
+    if not PPTX_AVAILABLE:
+        return None
+    
+    try:
+        prs = Presentation()
+        
+        title_slide_layout = prs.slide_layouts[0]
+        slide = prs.slides.add_slide(title_slide_layout)
+        title = slide.shapes.title
+        subtitle = slide.placeholders[1]
+        title.text = "Анализ рынка недвижимости"
+        subtitle.text = f"Отчет сгенерирован {datetime.now().strftime('%d.%m.%Y %H:%M')}\nНайдено объектов: {len(filtered_data)}"
+        
+        slide_layout = prs.slide_layouts[5]  # Blank layout
+        slide = prs.slides.add_slide(slide_layout)
+        title_shape = slide.shapes.title
+        title_shape.text = "Общая статистика"
+        
+        price_column = 'Цена кв м' if 'Цена кв м' in filtered_data.columns else 'Цена'
+        if price_column in filtered_data.columns:
+            max_price = filtered_data[price_column].max()
+            avg_price = filtered_data[price_column].mean()
+            min_price = filtered_data[price_column].min()
+            
+            stats_text = f"""
+            Количество объектов: {len(filtered_data)}
+            Максимальная цена: {max_price:,.0f} руб.
+            Средняя цена: {avg_price:,.0f} руб.
+            Минимальная цена: {min_price:,.0f} руб.
+            """
+            
+            textbox = slide.shapes.add_textbox(Inches(1), Inches(1.5), Inches(8), Inches(2))
+            text_frame = textbox.text_frame
+            text_frame.text = stats_text
+            
+            for paragraph in text_frame.paragraphs:
+                paragraph.font.size = Pt(14)
+        
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.pptx')
+        prs.save(temp_file.name)
+        
+        return temp_file.name
+        
+    except Exception as e:
+        st.error(f"Ошибка при создании презентации: {e}")
+        return None
+
 def show_apartment_search():
     st.header("🔍 Поиск квартир по параметрам")
     
@@ -191,31 +159,35 @@ def show_apartment_search():
     with col1:
         st.subheader("Основные параметры")
         
-        def get_unique_values(column_name, default_options=None):
+        def get_unique_values(column_name):
             if column_name in data.columns and not data[column_name].empty:
                 unique_vals = data[column_name].dropna().unique().tolist()
-                return sorted([x for x in unique_vals if x is not None and x != ''])
-            return default_options if default_options else []
+                return sorted([str(x) for x in unique_vals if x is not None and x != ''])
+            return []
         
-        class_options = get_unique_values('Класс К....', ['Эконом', 'Комфорт', 'Бизнес', 'Премиум'])
+        class_options = get_unique_values('Класс К....')
         class_input = st.selectbox('Класс квартиры', options=[None] + class_options)
         
-        area_min = st.number_input('Площадь от (м²)', min_value=0.0, value=0.0)
-        area_max = st.number_input('Площадь до (m²)', min_value=0.0, value=0.0)
+        area_min = st.number_input('Площадь от (м²)', min_value=0.0, value=0.0, step=1.0)
+        area_max = st.number_input('Площадь до (м²)', min_value=0.0, value=0.0, step=1.0)
+        if area_max > 0 and area_min > area_max:
+            st.error("Максимальная площадь не может быть меньше минимальной")
     
     with col2:
         st.subheader("Дополнительные параметры")
         
-        rooms_options = get_unique_values('Комнат', [1, 2, 3, 4, 5])
+        rooms_options = get_unique_values('Комнат')
         rooms_input = st.selectbox('Комнат', options=[None] + rooms_options)
         
         floor_min = st.number_input('Этаж от', min_value=0, value=0)
         floor_max = st.number_input('Этаж до', min_value=0, value=0)
+        if floor_max > 0 and floor_min > floor_max:
+            st.error("Максимальный этаж не может быть меньше минимального")
         
-        district_options = get_unique_values('Район Город', ['ЦАО', 'САО', 'ЮАО', 'ЗАО', 'СВАО', 'ЮЗАО', 'ВАО'])
+        district_options = get_unique_values('Район Город')
         district_input = st.selectbox('Район', options=[None] + district_options)
         
-        builder_options = get_unique_values('Застройщик', ['ПИК', 'Самолет', 'Эталон'])
+        builder_options = get_unique_values('Застройщик')
         builder_input = st.selectbox('Застройщик', options=[None] + builder_options)
     
     st.subheader("🏗️ Инфраструктура")
@@ -226,7 +198,7 @@ def show_apartment_search():
     
     for i, col_name in enumerate(infra_columns):
         if col_name in data.columns:
-            options = get_unique_values(col_name, [])
+            options = get_unique_values(col_name)
             with infra_cols[i]:
                 infrastructure_options[col_name] = st.selectbox(
                     col_name,
@@ -246,7 +218,7 @@ def show_apartment_search():
             filtered_df = filtered_df[filtered_df['Площадь'] <= area_max]
         
         if rooms_input:
-            filtered_df = filtered_df[filtered_df['Комнат'] == rooms_input]
+            filtered_df = filtered_df[filtered_df['Комнат'] == int(rooms_input)]
         
         if floor_min > 0:
             filtered_df = filtered_df[filtered_df['Этаж'] >= floor_min]
@@ -307,32 +279,31 @@ def show_apartment_search():
                     presentation_path = create_presentation(filtered_df)
                     if presentation_path:
                         with open(presentation_path, "rb") as file:
-                            btn = st.download_button(
+                            st.download_button(
                                 label="⬇️ Скачать презентацию",
                                 data=file,
                                 file_name=f"анализ_недвижимости_{datetime.now().strftime('%Y%m%d_%H%M')}.pptx",
                                 mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
                             )
-                        os.unlink(presentation_path)
-            else:
-                st.warning("Функция создания презентации недоступна (требуется python-pptx)")
+                        try:
+                            os.unlink(presentation_path)
+                        except:
+                            pass
             
             if SKLEARN_AVAILABLE:
                 if st.button("📊 Сделать прогноз для найденных квартир"):
                     st.session_state.target_section = "Прогнозирование"
                     st.rerun()
-            else:
-                st.warning("Функция прогнозирования недоступна (требуется scikit-learn)")
 
 def show_polynomial_regression():
     if not SKLEARN_AVAILABLE:
         st.error("Функция прогнозирования недоступна. Установите scikit-learn.")
         return
         
-    st.header("📈 Прогнозирование цен на 2026 год")
+    st.header("📈 Прогнозирование цен")
     
     st.info("""
-    В этом разделе строится полиномиальная регрессионная модель для прогнозирования цены за м² 
+    В этом разделе строится полиномиальная регрессионная модель для прогнозирования цены и цены за м² 
     на основе выбранных признаков. Модель может быть обучена на всех данных или на отфильтрованных квартирах.
     """)
     
@@ -358,9 +329,9 @@ def show_polynomial_regression():
         st.error(f"Колонка '{target_col}' не найдена в данных!")
         return
     
-    price_columns_to_exclude = ['Цена кв м', 'Цена', 'Цена со скидкой', 'Изменение цены последнее', 'Изменение цены', 'Номер квартиры']
+    price_columns_to_exclude = ['Цена кв м', 'Цена', 'Номер квартиры']
     available_features = [col for col in numeric_cols + categorical_cols 
-                         if col not in price_columns_to_exclude]
+                         if col not in price_columns_to_exclude and col in analysis_data.columns]
     
     available_numeric = [col for col in available_features if col in numeric_cols]
     available_categorical = [col for col in available_features if col in categorical_cols]
@@ -373,27 +344,13 @@ def show_polynomial_regression():
                                           default=['Площадь', 'Комнат', 'Этаж'])
     
     with col2:
-        st.write("")  # Отступ для выравнивания
-        st.write("")  # Отступ для выравнивания
+        st.write("")  
+        st.write("")  
         
         if st.button("Все признаки", key="select_all_btn"):
             selected_features = available_features
             st.rerun()
         
-        if st.button("Все категориальные", key="select_categorical_btn"):
-            # Добавляем категориальные признаки, сохраняя уже выбранные
-            current_selected = set(selected_features)
-            current_selected.update(available_categorical)
-            selected_features = list(current_selected)
-            st.rerun()
-            
-        if st.button("Все числовые", key="select_numeric_btn"):
-            # Добавляем числовые признаки, сохраняя уже выбранные
-            current_selected = set(selected_features)
-            current_selected.update(available_numeric)
-            selected_features = list(current_selected)
-            st.rerun()
-
         if st.button("Очистить", key="clear_btn"):
             selected_features = []
             st.rerun()
@@ -401,16 +358,10 @@ def show_polynomial_regression():
     if not selected_features:
         st.warning("Выберите хотя бы один признак для построения модели")
         return
-
-    selected_numeric = [col for col in selected_features if col in numeric_cols]
-    selected_categorical = [col for col in selected_features if col in categorical_cols]
-    
-    st.info(f"Выбрано: {len(selected_features)} признаков "
-           f"({len(selected_numeric)} числовых, {len(selected_categorical)} категориальных)")
     
     col1, col2, col3 = st.columns(3)
     with col1:
-        degree = st.slider("Степень полинома", 1, 5, 2)
+        degree = st.slider("Степень полинома", 1, 3, 2)
     with col2:
         test_size = st.slider("Размер тестовой выборки", 0.1, 0.5, 0.3)
     with col3:
@@ -418,7 +369,6 @@ def show_polynomial_regression():
     
     if st.button("Обучить модель", type='primary'):
         try:
-            
             missing_features = [col for col in selected_features if col not in analysis_data.columns]
             if missing_features:
                 st.error(f"Следующие признаки не найдены в данных: {missing_features}")
@@ -426,7 +376,7 @@ def show_polynomial_regression():
             
             X = analysis_data[selected_features].copy()
             y = analysis_data[target_col]
-
+            
             X_clean = X.dropna()
             y_clean = y.loc[X_clean.index]
             
@@ -439,7 +389,7 @@ def show_polynomial_regression():
             
             numeric_features = X_clean.select_dtypes(include=['int64', 'float64']).columns.tolist()
             categorical_features = X_clean.select_dtypes(include=['object']).columns.tolist()
-
+            
             if not numeric_features and not categorical_features:
                 st.error("Не осталось признаков для обучения после обработки данных!")
                 return
@@ -468,7 +418,7 @@ def show_polynomial_regression():
             ])
             
             X_processed = full_pipeline.fit_transform(X_clean)
-
+            
             if X_processed.shape[0] == 0:
                 st.error("После преобразований не осталось данных для обучения!")
                 return
@@ -510,15 +460,15 @@ def show_polynomial_regression():
                 
                 forecast_df = analysis_data[['Номер квартиры'] + selected_features].copy()
                 forecast_df['Фактическая цена'] = analysis_data[target_col]
-                forecast_df['Прогноз на 2026 год'] = all_predictions
-                forecast_df['Изменение, %'] = ((forecast_df['Прогноз на 2026 год'] - forecast_df['Фактическая цена']) / 
+                forecast_df['Прогноз'] = all_predictions
+                forecast_df['Изменение, %'] = ((forecast_df['Прогноз'] - forecast_df['Фактическая цена']) / 
                                              forecast_df['Фактическая цена'] * 100)
                 
-                st.subheader("📊 Прогноз цен на 2026 год")
+                st.subheader("📊 Результаты прогнозирования")
                 st.dataframe(
                     forecast_df.style.format({
                         'Фактическая цена': '{:,.0f}',
-                        'Прогноз на 2026 год': '{:,.0f}',
+                        'Прогноз': '{:,.0f}',
                         'Изменение, %': '{:.1f}%'
                     }),
                     height=400
@@ -526,7 +476,6 @@ def show_polynomial_regression():
                 
             except Exception as e:
                 st.warning(f"Не удалось сделать прогноз для всех данных: {e}")
-                st.info("Отображаются результаты только для тестовой выборки")
             
             col1, col2, col3, col4 = st.columns(4)
             with col1:
@@ -538,38 +487,9 @@ def show_polynomial_regression():
             with col4:
                 st.metric("Обучено на", f"{len(X_train)} samples")
             
-            test_results_df = pd.DataFrame({
-                'Actual': y_test.values,
-                'Predicted': y_pred,
-                'Residual': y_test.values - y_pred
-            }).round(2)
-            
-            with st.expander("Детали предсказаний (тестовая выборка)"):
-                st.dataframe(test_results_df.head(10))
-            
-            if PPTX_AVAILABLE and st.session_state.filtered_apartments is not None:
-                if st.button("📊 Выгрузить презентацию с результатами прогноза"):
-                    presentation_path = create_presentation(
-                        st.session_state.filtered_apartments, 
-                        st.session_state.analysis_results
-                    )
-                    if presentation_path:
-                        with open(presentation_path, "rb") as file:
-                            btn = st.download_button(
-                                label="⬇️ Скачать презентацию с прогнозом",
-                                data=file,
-                                file_name=f"прогноз_недвижимости_{datetime.now().strftime('%Y%m%d_%H%M')}.pptx",
-                                mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
-                            )
-                        os.unlink(presentation_path)
-            
         except Exception as e:
             st.error(f"Ошибка при обучении модели: {str(e)}")
             st.info("Попробуйте выбрать меньше признаков или уменьшить степень полинома")
-
-if 'target_section' in st.session_state:
-    section = st.session_state.target_section
-    del st.session_state.target_section
 
 if section == "Поиск квартир":
     show_apartment_search()
