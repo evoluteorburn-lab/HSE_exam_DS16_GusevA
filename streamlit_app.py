@@ -170,21 +170,22 @@ def show_apartment_search():
             st.session_state.filtered_apartments = filtered_df
             
             if 'Цена кв м' in filtered_df.columns and 'Цена' in filtered_df.columns:
-                col1, col2, col3, col4, col5, col6 = st.columns(6)
-
+                col1, col2, col3 = st.columns(3)
                 with col1:
                     st.metric("Средняя цена квартиры", f"{filtered_df['Цена'].mean():,.0f} руб.")
                 with col2:
                     st.metric("Минимальная цена квартиры", f"{filtered_df['Цена'].min():,.0f} руб.")
                 with col3:
                     st.metric("Максимальная цена квартиры", f"{filtered_df['Цена'].max():,.0f} руб.")
+
+                col4, col5, col6 = st.columns(3)
                 with col4:
                     st.metric("Средняя цена за м²", f"{filtered_df['Цена кв м'].mean():,.0f} руб.")
                 with col5:
                     st.metric("Минимальная цена за м²", f"{filtered_df['Цена кв м'].min():,.0f} руб.")
                 with col6:
                     st.metric("Максимальная цена за м²", f"{filtered_df['Цена кв м'].max():,.0f} руб.")
-           
+
             display_columns = ['Номер квартиры', 'Площадь', 'Комнат', 'Этаж', 'Район Город', 'Цена кв м', 'Класс К....']
             display_columns.extend([col for col in infra_columns if col in filtered_df.columns])
             available_columns = [col for col in display_columns if col in filtered_df.columns]
