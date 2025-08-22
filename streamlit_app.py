@@ -289,10 +289,9 @@ def show_polynomial_regression():
                                       options=available_features,
                                       default=['Площадь', 'Комнат', 'Этаж'])
 
-    col1 = st.columns([3, 1])
-    with col1:
-    st.write("")  # Отступ для выравнивания
-    st.write("")  # Отступ для выравнивания
+    col11 = st.columns([3, 1])
+    with col11:
+    st.write("") 
     if st.button("Выбрать все", key="select_all_btn"):
         selected_features = available_features
         st.rerun()
