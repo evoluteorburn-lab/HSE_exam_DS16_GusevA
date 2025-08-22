@@ -394,9 +394,6 @@ def show_polynomial_regression():
                 'Residual': y_test.values - y_pred
             }).round(2)
             
-            with st.expander("Детали предсказаний (тестовая выборка)"):
-                st.dataframe(test_results_df.head(10))
-            
         except Exception as e:
             st.error(f"Ошибка при обучении модели: {str(e)}")
 
