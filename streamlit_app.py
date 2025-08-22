@@ -96,6 +96,12 @@ if 'target_column' not in st.session_state:
 if 'analysis_results' not in st.session_state:
     st.session_state.analysis_results = None
 
+def get_unique_values(column_name):
+    if column_name in data.columns and not data[column_name].empty:
+        unique_vals = data[column_name].dropna().unique().tolist()
+        return sorted([str(x) for x in unique_vals if x is not None and x != ''])
+    return []
+
 def show_apartment_search():
     st.header("🔍 Поиск квартир по параметрам")
     
@@ -104,17 +110,11 @@ def show_apartment_search():
     with col1:
         st.subheader("Основные параметры")
         
-        def get_unique_values(column_name):
-            if column_name in data.columns and not data[column_name].empty:
-                unique_vals = data[column_name].dropna().unique().tolist()
-                return sorted([str(x) for x in unique_vals if x is not None and x != ''])
-            return []
-        
         class_options = get_unique_values('Класс К....')
         class_input = st.selectbox('Класс квартиры', options=[None] + class_options)
         
         area_min = st.number_input('Площадь от (м²)', min_value=0.0, value=0.0, step=1.0)
-        area_max = st.number_input('Площадь до (м²)', min_value=0.0, value=0.0, step=1.0)
+        area_max = st.number_input('Площадь до (м²)', min_value=0.0, value=200.0, step=1.0)
         if area_max > 0 and area_min > area_max:
             st.error("Максимальная площадь не может быть меньше минимальной")
     
@@ -125,7 +125,7 @@ def show_apartment_search():
         rooms_input = st.selectbox('Комнат', options=[None] + rooms_options)
         
         floor_min = st.number_input('Этаж от', min_value=0, value=0)
-        floor_max = st.number_input('Этаж до', min_value=0, value=0)
+        floor_max = st.number_input('Этаж до', min_value=0, value=50)
         if floor_max > 0 and floor_min > floor_max:
             st.error("Максимальный этаж не может быть меньше минимального")
         
@@ -137,41 +137,63 @@ def show_apartment_search():
     
     st.subheader("🏗️ Инфраструктура (диапазон значений)")
     infra_cols = st.columns(5)
-    infrastructure_options = {}
+    infrastructure_filters = {}
     
     infra_columns = ['Школа/Детский Сад', 'Парк/Зона отдыха', 'Спорт', 'Парковка', 'Рестораны']
     
+    # Сначала проверяем, какие колонки можно обрабатывать как числовые
     for i, col_name in enumerate(infra_columns):
         if col_name in data.columns:
-            options = get_unique_values(col_name, [])
-            with infra_cols[i]:
-                infrastructure_options[col_name] = st.selectbox(
-                    col_name,
-                    options=[None] + options,
-                    key=f"infra_{col_name}"
-                )
-    
-    for i, col_name in enumerate(infra_columns):
-        if col_name in data.columns:
-            numeric_values = pd.to_numeric(data[col_name], errors='coerce').dropna()
-            if not numeric_values.empty:
-                min_val = numeric_values.min()
-                max_val = numeric_values.max()
-                
+            try:
+                # Пробуем преобразовать в числа
+                numeric_values = pd.to_numeric(data[col_name], errors='coerce').dropna()
+                if len(numeric_values) > 0:
+                    min_val = float(numeric_values.min())
+                    max_val = float(numeric_values.max())
+                    
+                    with infra_cols[i]:
+                        st.write(f"**{col_name}**")
+                        infra_min = st.number_input(
+                            f'{col_name} от', 
+                            min_value=min_val, 
+                            max_value=max_val, 
+                            value=min_val, 
+                            key=f"{col_name}_min"
+                        )
+                        infra_max = st.number_input(
+                            f'{col_name} до', 
+                            min_value=min_val, 
+                            max_value=max_val, 
+                            value=max_val, 
+                            key=f"{col_name}_max"
+                        )
+                        infrastructure_filters[col_name] = ('range', infra_min, infra_max)
+                else:
+                    # Если не числовые, показываем категориальный выбор
+                    options = get_unique_values(col_name)
+                    with infra_cols[i]:
+                        selected_value = st.selectbox(
+                            col_name,
+                            options=[None] + options,
+                            key=f"infra_{col_name}"
+                        )
+                        infrastructure_filters[col_name] = ('value', selected_value)
+            except:
+                # В случае ошибки используем категориальный выбор
+                options = get_unique_values(col_name)
                 with infra_cols[i]:
-                    st.write(f"**{col_name}**")
-                    infra_min = st.number_input(f'{col_name} от', min_value=float(min_val), 
-                                              max_value=float(max_val), value=float(min_val), 
-                                              key=f"{col_name}_min")
-                    infra_max = st.number_input(f'{col_name} до', min_value=float(min_val), 
-                                              max_value=float(max_val), value=float(max_val), 
-                                              key=f"{col_name}_max")
-                    infrastructure_options[col_name] = (infra_min, infra_max)
+                    selected_value = st.selectbox(
+                        col_name,
+                        options=[None] + options,
+                        key=f"infra_{col_name}"
+                    )
+                    infrastructure_filters[col_name] = ('value', selected_value)
     
     if st.button('Найти квартиры', type='primary'):
         filtered_df = data.copy()
         
-        if class_input and 'Класс К....' in filtered_df.columns:
+        # Применяем основные фильтры
+        if class_input and class_input != 'None' and 'Класс К....' in filtered_df.columns:
             filtered_df = filtered_df[filtered_df['Класс К....'] == class_input]
         
         if area_min > 0:
@@ -179,7 +201,7 @@ def show_apartment_search():
         if area_max > 0:
             filtered_df = filtered_df[filtered_df['Площадь'] <= area_max]
         
-        if rooms_input:
+        if rooms_input and rooms_input != 'None':
             filtered_df = filtered_df[filtered_df['Комнат'] == int(rooms_input)]
         
         if floor_min > 0:
@@ -187,19 +209,28 @@ def show_apartment_search():
         if floor_max > 0:
             filtered_df = filtered_df[filtered_df['Этаж'] <= floor_max]
         
-        if district_input:
+        if district_input and district_input != 'None':
             filtered_df = filtered_df[filtered_df['Район Город'] == district_input]
         
-        if builder_input:
+        if builder_input and builder_input != 'None':
             filtered_df = filtered_df[filtered_df['Застройщик'] == builder_input]
         
-        for col_name, (min_val, max_val) in infrastructure_options.items():
+        # Применяем фильтры инфраструктуры
+        for col_name, filter_info in infrastructure_filters.items():
             if col_name in filtered_df.columns:
-                filtered_df[col_name] = pd.to_numeric(filtered_df[col_name], errors='coerce')
-                filtered_df = filtered_df[
-                    (filtered_df[col_name] >= min_val) & 
-                    (filtered_df[col_name] <= max_val)
-                ]
+                filter_type, *filter_values = filter_info
+                
+                if filter_type == 'range' and len(filter_values) == 2:
+                    min_val, max_val = filter_values
+                    filtered_df[col_name] = pd.to_numeric(filtered_df[col_name], errors='coerce')
+                    filtered_df = filtered_df[
+                        (filtered_df[col_name] >= min_val) & 
+                        (filtered_df[col_name] <= max_val)
+                    ]
+                elif filter_type == 'value' and len(filter_values) == 1:
+                    value = filter_values[0]
+                    if value and value != 'None':
+                        filtered_df = filtered_df[filtered_df[col_name] == value]
         
         if len(filtered_df) == 0:
             st.warning("Не найдено объектов по указанным параметрам")
@@ -214,7 +245,7 @@ def show_apartment_search():
                 with col1:
                     st.metric("Максимальная цена за м²", f"{filtered_df['Цена кв м'].max():,.0f} руб.")
                 with col2:
-                    st.metric("Средняя цена за м²", f"{filtered_df['Цена кв м'].mean():,.0f} руб.")
+                    st.metric("Средняя цена за м²", f"{filtered_df['Цена кв m'].mean():,.0f} руб.")
                 with col3:
                     st.metric("Минимальная цена за м²", f"{filtered_df['Цена кв м'].min():,.0f} руб.")
             
