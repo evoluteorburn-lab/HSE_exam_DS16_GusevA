@@ -111,7 +111,7 @@ def create_presentation(filtered_data, analysis_results=None):
     title = slide.shapes.title
     title.text = "Общая статистика"
     
-    price_column = 'Цена кв м' if 'Цена кв m' in filtered_data.columns else 'Цена'
+    price_column = 'Цена кв м' if 'Цена кв м' in filtered_data.columns else 'Цена'
     if price_column in filtered_data.columns:
         avg_price = filtered_data[price_column].mean()
         max_price = filtered_data[price_column].max()
