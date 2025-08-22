@@ -289,7 +289,7 @@ def show_polynomial_regression():
     col11, col12 = st.columns([3, 1])
     
     with col11:  
-    #selected_features = st.multiselect("Признаки для модели (X):", 
+    selected_features = st.multiselect("Признаки для модели (X):", 
                                       #options=available_features,
                                       #default=['Площадь', 'Комнат', 'Этаж'])
     with col12:  
