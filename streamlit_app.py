@@ -78,7 +78,7 @@ section_options = ["Поиск квартир"]
 if SKLEARN_AVAILABLE:
     section_options.append("Прогнозирование")
 
-query_params = st.experimental_get_query_params()
+query_params = st.query_params
 initial_section = query_params.get("section", ["Поиск квартир"])[0]
 if initial_section not in section_options:
     initial_section = "Поиск квартир"
@@ -198,17 +198,25 @@ def show_apartment_search():
             st.success(f"Найдено {len(filtered_df)} объектов")
             st.session_state.filtered_apartments = filtered_df
             
-            price_column = 'Цена кв м' if 'Цена кв м' in filtered_df.columns else 'Цена'
-            if price_column in filtered_df.columns:
+            if 'Цена кв м' in filtered_df.columns:
                 col1, col2, col3 = st.columns(3)
                 with col1:
-                    st.metric("Максимальная цена", f"{filtered_df[price_column].max():,.0f} руб.")
+                    st.metric("Максимальная цена за м²", f"{filtered_df['Цена кв м'].max():,.0f} руб.")
                 with col2:
-                    st.metric("Средняя цена", f"{filtered_df[price_column].mean():,.0f} руб.")
+                    st.metric("Средняя цена за м²", f"{filtered_df['Цена кв м'].mean():,.0f} руб.")
                 with col3:
-                    st.metric("Минимальная цена", f"{filtered_df[price_column].min():,.0f} руб.")
+                    st.metric("Минимальная цена за м²", f"{filtered_df['Цена кв м'].min():,.0f} руб.")
             
-            display_columns = ['Номер квартиры', 'Площадь', 'Комнат', 'Этаж', 'Район Город', 'Цена кв м', 'Класс К....']
+            if 'Цена' in filtered_df.columns:
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Максимальная цена квартиры", f"{filtered_df['Цена'].max():,.0f} руб.")
+                with col2:
+                    st.metric("Средняя цена квартиры", f"{filtered_df['Цена'].mean():,.0f} руб.")
+                with col3:
+                    st.metric("Минимальная цена квартиры", f"{filtered_df['Цена'].min():,.0f} руб.")
+            
+            display_columns = ['Номер квартиры', 'Площадь', 'Комнат', 'Этаж', 'Район Город', 'Цена', 'Цена кв м', 'Класс К....']
             display_columns.extend([col for col in infra_columns if col in filtered_df.columns])
             
             available_columns = [col for col in display_columns if col in filtered_df.columns]
@@ -223,17 +231,13 @@ def show_apartment_search():
             
             st.dataframe(
                 display_df.style.format({
+                    'Цена': '{:,.0f} руб.',
                     'Цена за м²': '{:,.0f} руб.',
                     'Площадь': '{:.1f} м²',
                     '№ Квартиры': '{:.0f}'
                 }),
                 height=400
             )
-            
-            if SKLEARN_AVAILABLE:
-                if st.button("📊 Сделать прогноз для найденных квартир", key="goto_forecast"):
-                    st.experimental_set_query_params(section="Прогнозирование")
-                    st.rerun()
 
 def show_polynomial_regression():
     if not SKLEARN_AVAILABLE:
