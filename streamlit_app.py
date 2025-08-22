@@ -268,4 +268,4 @@ def show_polynomial_regression():
     temp_data = analysis_data[selected_features + [target_col]].copy()
     temp_data = temp_data.dropna()
     if temp_data.empty:
-        st.error("❌ После
+        st.error(""❌ После обработки данные оказались пустыми, проверьте признаки")
