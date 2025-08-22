@@ -244,7 +244,7 @@ def show_polynomial_regression():
     
     available_features = [col for col in numeric_cols + categorical_cols 
                          if col != target_col and col != 'Номер квартиры']
-    price_columns_to_exclude = ['Цена кв м', 'Цена', 'Цена со скидкой', 'Изменение цены последнее', 'Изменение цены','Номер на этаже', 'Номер секции', 'Отделка текст', 'ЖК англ', 'Изменение цены',]
+    price_columns_to_exclude = ['Цена кв м', 'Цена', 'Цена со скидкой', 'Изменение цены последнее', 'Изменение цены']
     available_features = [col for col in available_features 
                          if col not in price_columns_to_exclude and col in analysis_data.columns]
     
@@ -253,8 +253,18 @@ def show_polynomial_regression():
     with col1:
         selected_features = st.multiselect("Признаки для модели (X):", 
                                           options=available_features,
-                                          default=['Школа/Детский Сад', 'Парк/Зона отдыха', 'Спорт', 'Парковка', 'Рестораны', 'Комнат', 'Площадь', 'Этаж', 'Район Город', 'Класс К....', 'Застройщик', 'Метро'])
-   
+                                          default=['Площадь', 'Комнат', 'Этаж'])
+    
+    with col2:
+        st.write("")
+        st.write("")
+        if st.button("Выбрать все доступные"):
+            available_features_with_data = []
+            for feature in available_features:
+                if analysis_data[feature].notna().sum() > 0:
+                    available_features_with_data.append(ffeature)
+            selected_features = available_features_with_data
+    
     if not selected_features:
         st.warning("Выберите хотя бы один признак для построения модели")
         return
