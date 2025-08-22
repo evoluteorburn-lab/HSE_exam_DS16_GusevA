@@ -282,7 +282,7 @@ def show_polynomial_regression():
         st.write("")
         st.write("")
         
-        if st.button("Все признаки", key="select_all_btn"):
+        if st.button("Выбрать все", key="select_all_btn"):
             selected_features = available_features
             st.rerun()
         
@@ -312,11 +312,19 @@ def show_polynomial_regression():
             X = analysis_data[selected_features].copy()
             y = analysis_data[target_col]
             
-            X_clean = X.dropna()
-            y_clean = y.loc[X_clean.index]
+            X_clean = X.copy()
+            y_clean = y.copy()
+            
+            for col in selected_features:
+                if X_clean[col].dtype == 'object':
+                    X_clean[col] = X_clean[col].fillna('Unknown')
+                else:
+                    X_clean[col] = X_clean[col].fillna(X_clean[col].median())
+            
+            y_clean = y_clean.fillna(y_clean.median())
             
             if len(X_clean) == 0:
-                st.error("После обработки пропусков не осталось данных для обучения!")
+                st.error("Не осталось данных для обучения!")
                 return
             
             if len(X_clean) < 10:
@@ -391,10 +399,10 @@ def show_polynomial_regression():
             }
             
             try:
-                all_predictions = model.predict(full_pipeline.transform(X))
+                all_predictions = model.predict(full_pipeline.transform(X_clean))
                 
                 forecast_df = analysis_data[['Номер квартиры'] + selected_features].copy()
-                forecast_df['Фактическая цена'] = analysis_data[target_col]
+                forecast_df['Фактическая цена'] = y_clean
                 forecast_df['Прогноз'] = all_predictions
                 forecast_df['Изменение, %'] = ((forecast_df['Прогноз'] - forecast_df['Фактическая цена']) / 
                                              forecast_df['Фактическая цена'] * 100)
