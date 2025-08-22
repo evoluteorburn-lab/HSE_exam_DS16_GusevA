@@ -119,10 +119,10 @@ def show_apartment_search():
         builder_input = st.selectbox('Застройщик', options=[None] + builder_options)
     
     st.subheader("🏗️ Инфраструктура")
-    infra_cols = st.columns(5)
+    infra_cols = st.columns(6)
     infrastructure_options = {}
     
-    infra_columns = ['Школа/Детский Сад', 'Парк/Зона отдыха', 'Спорт', 'Парковка', 'Рестораны']
+    infra_columns = ['Школа/Детский Сад', 'Парк/Зона отдыха', 'Спорт', 'Парковка', 'Рестораны', 'Метро']
     
     for i, col_name in enumerate(infra_columns):
         if col_name in data.columns:
@@ -195,7 +195,8 @@ def show_apartment_search():
                 'Класс К....': 'Класс',
                 'Район Город': 'Район',
                 'Цена кв м': 'Цена за м²',
-                'Номер квартиры': '№ Квартиры'
+                'Номер квартиры': '№ Квартиры',
+                'Метро': 'Метро'
             }, inplace=True)
             
             st.dataframe(
@@ -261,7 +262,7 @@ def show_polynomial_regression():
             available_features_with_data = []
             for feature in available_features:
                 if analysis_data[feature].notna().sum() > 0:
-                    available_features_with_data.append(feature)
+                    available_features_with_data.append(ffeature)
             selected_features = available_features_with_data
     
     if not selected_features:
