@@ -258,7 +258,6 @@ def show_polynomial_regression():
         selected_features = st.multiselect("Признаки для модели (X):", 
                                           options=available_features,
                                           default=['Площадь', 'Комнат', 'Этаж'])
-    
     with col2:
         st.write("")
         st.write("")
@@ -266,8 +265,8 @@ def show_polynomial_regression():
             available_features_with_data = []
             for feature in available_features:
                 if analysis_data[feature].notna().sum() > 0:
-                    available_features_with_data.append(ffeature)
-            selected_features = available_features_with_data
+                    available_features_with_data.append(feature)
+                selected_features = available_features_with_data
     
     if not selected_features:
         st.warning("Выберите хотя бы один признак для построения модели")
