@@ -266,7 +266,7 @@ def show_polynomial_regression():
         st.error(f"Колонка '{target_col}' не найдена в данных!")
         return
     
-    price_columns_to_exclude = ['Цена кв м', 'Цена', 'Номер квартиры']
+    price_columns_to_exclude = ['Цена кв м', 'Цена', 'Изменение цены последнее', 'Изменение цены', 'Цена со скидкой']
     available_features = [col for col in numeric_cols + categorical_cols 
                          if col not in price_columns_to_exclude and col in analysis_data.columns]
     
