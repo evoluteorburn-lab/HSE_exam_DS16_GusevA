@@ -211,11 +211,11 @@ def show_apartment_search():
             if price_column in filtered_df.columns:
                 col1, col2, col3 = st.columns(3)
                 with col1:
-                    st.metric("Средняя цена за м²", f"{filtered_df[price_column].mean():,.0f} руб.")
+                    st.metric("Средняя цена", f"{filtered_df[price_column].mean():,.0f} руб.")
                 with col2:
-                    st.metric("Медианная цена за м²", f"{filtered_df[price_column].median():,.0f} руб.")
+                    st.metric("Медианная цена", f"{filtered_df[price_column].median():,.0f} руб.")
                 with col3:
-                    st.metric("Минимальная цена за м²", f"{filtered_df[price_column].min():,.0f} руб.")
+                    st.metric("Минимальная цена", f"{filtered_df[price_column].min():,.0f} руб.")
             
             display_columns = ['Номер квартиры', 'Площадь', 'Комнат', 'Этаж', 'Район Город', 'Цена кв м', 'Класс К....']
             display_columns.extend([col for col in infra_columns if col in filtered_df.columns])
