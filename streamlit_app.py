@@ -181,12 +181,18 @@ def show_apartment_search():
             st.session_state.filtered_apartments = filtered_df
             
             if 'Цена кв м' in filtered_df.columns and 'Цена' in filtered_df.columns:
-                col1, col2, col3 = st.columns(3)
+                col1, col2, col3, col4, col5, col6 = st.columns(6)
                 with col1:
                     st.metric("Средняя цена за м²", f"{filtered_df['Цена кв м'].mean():,.0f} руб.")
                 with col2:
-                    st.metric("Максимальная цена за м²", f"{filtered_df['Цена кв м'].max():,.0f} руб.")
+                    st.metric("Минимальная цена за м²", f"{filtered_df['Цена кв м'].min():,.0f} руб.")
                 with col3:
+                    st.metric("Максимальная цена за м²", f"{filtered_df['Цена кв м'].max():,.0f} руб.")
+                with col4:
+                    st.metric("Средняя цена квартиры", f"{filtered_df['Цена'].mean():,.0f} руб.")
+                with col5:
+                    st.metric("Минимальная цена квартиры", f"{filtered_df['Цена'].min():,.0f} руб.")
+                with col6:
                     st.metric("Максимальная цена квартиры", f"{filtered_df['Цена'].max():,.0f} руб.")
             
             display_columns = ['Номер квартиры', 'Площадь', 'Комнат', 'Этаж', 'Район Город', 'Цена кв м', 'Класс К....']
@@ -364,7 +370,25 @@ def show_polynomial_regression():
                 st.metric("MAE", f"{mae:.2f}")
             with col4:
                 st.metric("Обучено на", f"{len(X_train)} samples")
-  
+            
+            if MATPLOTLIB_AVAILABLE:
+                fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
+                
+                ax1.scatter(y_test, y_pred, alpha=0.5)
+                ax1.plot([y.min(), y.max()], [y.min(), y.max()], 'r--', lw=2)
+                ax1.set_xlabel('Фактические значения')
+                ax1.set_ylabel('Предсказанные значения')
+                ax1.set_title('Фактические vs Предсказанные значения')
+                
+                residuals = y_test - y_pred
+                ax2.scatter(y_pred, residuals, alpha=0.5)
+                ax2.axhline(y=0, color='r', linestyle='--')
+                ax2.set_xlabel('Предсказанные значения')
+                ax2.set_ylabel('Остатки')
+                ax2.set_title('Анализ остатков')
+                
+                plt.tight_layout()
+                st.pyplot(fig)
             
         except Exception as e:
             st.error(f"Ошибка при обучении модели: {str(e)}")
