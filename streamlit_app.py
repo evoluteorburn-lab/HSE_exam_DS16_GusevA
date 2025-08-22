@@ -69,7 +69,6 @@ def load_data_from_github():
         return create_demo_data()
 
 def create_demo_data():
-    """Создает демонстрационные данные"""
     data = {
         'ID Корпуса': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
         'ID ЖК': [101, 101, 102, 103, 103, 104, 105, 106, 107, 108],
@@ -92,6 +91,68 @@ def create_demo_data():
         'Номер квартиры': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     }
     return pd.DataFrame(data)
+
+def create_presentation(filtered_data, analysis_results=None):
+    if not PPTX_AVAILABLE:
+        st.error("Библиотека python-pptx не установлена. Невозможно создать презентацию.")
+        return None
+    
+    prs = Presentation()
+    
+    title_slide_layout = prs.slide_layouts[0]
+    slide = prs.slides.add_slide(title_slide_layout)
+    title = slide.shapes.title
+    subtitle = slide.placeholders[1]
+    title.text = "Анализ рынка недвижимости"
+    subtitle.text = f"Отчет сгенерирован {datetime.now().strftime('%d.%m.%Y %H:%M')}\nНайдено объектов: {len(filtered_data)}"
+    
+    stats_slide_layout = prs.slide_layouts[5]
+    slide = prs.slides.add_slide(stats_slide_layout)
+    title = slide.shapes.title
+    title.text = "Общая статистика"
+    
+    price_column = 'Цена кв м' if 'Цена кв m' in filtered_data.columns else 'Цена'
+    if price_column in filtered_data.columns:
+        avg_price = filtered_data[price_column].mean()
+        max_price = filtered_data[price_column].max()
+        min_price = filtered_data[price_column].min()
+        
+        rows = [
+            ["Показатель", "Значение"],
+            ["Количество объектов", str(len(filtered_data))],
+            ["Максимальная цена", f"{max_price:,.0f} руб."],
+            ["Средняя цена", f"{avg_price:,.0f} руб."],
+            ["Минимальная цена", f"{min_price:,.0f} руб."]
+        ]
+        
+        x, y, cx, cy = Inches(1), Inches(1.5), Inches(8), Inches(2)
+        shape = slide.shapes.add_table(len(rows), 2, x, y, cx, cy)
+        table = shape.table
+        
+        for i, row in enumerate(rows):
+            for j, cell_value in enumerate(row):
+                table.cell(i, j).text = cell_value
+    
+    if analysis_results:
+        analysis_slide_layout = prs.slide_layouts[5]
+        slide = prs.slides.add_slide(analysis_slide_layout)
+        title = slide.shapes.title
+        title.text = "Результаты прогнозирования"
+        
+        content = f"""
+        Модель прогнозирования обучена на {analysis_results.get('train_samples', 0)} объектах
+        Качество модели (R²): {analysis_results.get('r2_score', 0):.3f}
+        Средняя ошибка прогноза (RMSE): {analysis_results.get('rmse', 0):.2f}
+        """
+        
+        txBox = slide.shapes.add_textbox(Inches(1), Inches(1.5), Inches(8), Inches(2))
+        tf = txBox.text_frame
+        tf.text = content
+    
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.pptx')
+    prs.save(temp_file.name)
+    
+    return temp_file.name
 
 data = load_data_from_github()
 
@@ -119,6 +180,8 @@ if 'model_features' not in st.session_state:
     st.session_state.model_features = None
 if 'target_column' not in st.session_state:
     st.session_state.target_column = None
+if 'analysis_results' not in st.session_state:
+    st.session_state.analysis_results = None
 
 def show_apartment_search():
     st.header("🔍 Поиск квартир по параметрам")
@@ -138,7 +201,7 @@ def show_apartment_search():
         class_input = st.selectbox('Класс квартиры', options=[None] + class_options)
         
         area_min = st.number_input('Площадь от (м²)', min_value=0.0, value=0.0)
-        area_max = st.number_input('Площадь до (м²)', min_value=0.0, value=0.0)
+        area_max = st.number_input('Площадь до (m²)', min_value=0.0, value=0.0)
     
     with col2:
         st.subheader("Дополнительные параметры")
@@ -211,13 +274,13 @@ def show_apartment_search():
             if price_column in filtered_df.columns:
                 col1, col2, col3 = st.columns(3)
                 with col1:
-                    st.metric("Средняя цена", f"{filtered_df[price_column].mean():,.0f} руб.")
+                    st.metric("Максимальная цена", f"{filtered_df[price_column].max():,.0f} руб.")
                 with col2:
-                    st.metric("Медианная цена", f"{filtered_df[price_column].median():,.0f} руб.")
+                    st.metric("Средняя цена", f"{filtered_df[price_column].mean():,.0f} руб.")
                 with col3:
                     st.metric("Минимальная цена", f"{filtered_df[price_column].min():,.0f} руб.")
             
-            display_columns = ['Номер квартиры', 'Площадь', 'Комнат', 'Этаж', 'Район Город', 'Цена кв м', 'Класс К....']
+            display_columns = ['Номер квартиры', 'Площадь', 'Комнат', 'Этаж', 'Район Город', 'Цена кв m', 'Класс К....']
             display_columns.extend([col for col in infra_columns if col in filtered_df.columns])
             
             available_columns = [col for col in display_columns if col in filtered_df.columns]
@@ -226,7 +289,7 @@ def show_apartment_search():
             display_df.rename(columns={
                 'Класс К....': 'Класс',
                 'Район Город': 'Район',
-                'Цена кв м': 'Цена за м²',
+                'Цена кв m': 'Цена за м²',
                 'Номер квартиры': '№ Квартиры'
             }, inplace=True)
             
@@ -239,7 +302,21 @@ def show_apartment_search():
                 height=400
             )
             
-            # Кнопка для перехода к прогнозированию (только если scikit-learn доступен)
+            if PPTX_AVAILABLE:
+                if st.button("📊 Выгрузить презентацию по результатам анализа"):
+                    presentation_path = create_presentation(filtered_df)
+                    if presentation_path:
+                        with open(presentation_path, "rb") as file:
+                            btn = st.download_button(
+                                label="⬇️ Скачать презентацию",
+                                data=file,
+                                file_name=f"анализ_недвижимости_{datetime.now().strftime('%Y%m%d_%H%M')}.pptx",
+                                mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                            )
+                        os.unlink(presentation_path)
+            else:
+                st.warning("Функция создания презентации недоступна (требуется python-pptx)")
+            
             if SKLEARN_AVAILABLE:
                 if st.button("📊 Сделать прогноз для найденных квартир"):
                     st.session_state.target_section = "Прогнозирование"
@@ -274,23 +351,62 @@ def show_polynomial_regression():
     categorical_cols = analysis_data.select_dtypes(include=['object']).columns.tolist()
     
     target_col = st.selectbox("Целевая переменная (y):", 
-                             options=['Цена кв м', 'Цена'],
+                             options=['Цена кв m', 'Цена'],
                              index=0)
     
     if target_col not in analysis_data.columns:
         st.error(f"Колонка '{target_col}' не найдена в данных!")
         return
     
-    available_features = [col for col in numeric_cols + categorical_cols if col != target_col and col != 'Номер квартиры']
-    price_columns_to_exclude = ['Цена кв м', 'Цена', 'Цена со скидкой', 'Изменение цены последнее', 'Изменение цены']
+    price_columns_to_exclude = ['Цена кв m', 'Цена', 'Цена со скидкой', 'Изменение цены последнее', 'Изменение цены', 'Номер квартиры']
     available_features = [col for col in numeric_cols + categorical_cols 
-                     if col not in price_columns_to_exclude]
-    selected_features = st.multiselect("Признаки для модели (X):", 
-                                      options=available_features,
-                                      default=['Площадь', 'Комнат', 'Этаж'])
+                         if col not in price_columns_to_exclude]
+    
+    available_numeric = [col for col in available_features if col in numeric_cols]
+    available_categorical = [col for col in available_features if col in categorical_cols]
+    
+    col1, col2 = st.columns([4, 1])
+    
+    with col1:
+        selected_features = st.multiselect("Признаки для модели (X):", 
+                                          options=available_features,
+                                          default=['Площадь', 'Комнат', 'Этаж'])
+    
+    with col2:
+        st.write("")  # Отступ для выравнивания
+        st.write("")  # Отступ для выравнивания
+        
+        if st.button("Все признаки", key="select_all_btn"):
+            selected_features = available_features
+            st.rerun()
+        
+        if st.button("Все категориальные", key="select_categorical_btn"):
+            # Добавляем категориальные признаки, сохраняя уже выбранные
+            current_selected = set(selected_features)
+            current_selected.update(available_categorical)
+            selected_features = list(current_selected)
+            st.rerun()
+            
+        if st.button("Все числовые", key="select_numeric_btn"):
+            # Добавляем числовые признаки, сохраняя уже выбранные
+            current_selected = set(selected_features)
+            current_selected.update(available_numeric)
+            selected_features = list(current_selected)
+            st.rerun()
+
+        if st.button("Очистить", key="clear_btn"):
+            selected_features = []
+            st.rerun()
+    
     if not selected_features:
         st.warning("Выберите хотя бы один признак для построения модели")
         return
+
+    selected_numeric = [col for col in selected_features if col in numeric_cols]
+    selected_categorical = [col for col in selected_features if col in categorical_cols]
+    
+    st.info(f"Выбрано: {len(selected_features)} признаков "
+           f"({len(selected_numeric)} числовых, {len(selected_categorical)} категориальных)")
     
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -302,20 +418,31 @@ def show_polynomial_regression():
     
     if st.button("Обучить модель", type='primary'):
         try:
-            X = analysis_data[selected_features].copy()
-            y = analysis_data[target_col]
             
-            original_indices = X.index
-            
-            X = X.dropna()
-            y = y.loc[X.index]
-            
-            if len(X) == 0:
-                st.error("После обработки пропусков не осталось данных!")
+            missing_features = [col for col in selected_features if col not in analysis_data.columns]
+            if missing_features:
+                st.error(f"Следующие признаки не найдены в данных: {missing_features}")
                 return
             
-            numeric_features = X.select_dtypes(include=['int64', 'float64']).columns.tolist()
-            categorical_features = X.select_dtypes(include=['object']).columns.tolist()
+            X = analysis_data[selected_features].copy()
+            y = analysis_data[target_col]
+
+            X_clean = X.dropna()
+            y_clean = y.loc[X_clean.index]
+            
+            if len(X_clean) == 0:
+                st.error("После обработки пропусков не осталось данных для обучения!")
+                return
+            
+            if len(X_clean) < 10:
+                st.warning(f"Мало данных для обучения: всего {len(X_clean)} строк. Результаты могут быть ненадежными.")
+            
+            numeric_features = X_clean.select_dtypes(include=['int64', 'float64']).columns.tolist()
+            categorical_features = X_clean.select_dtypes(include=['object']).columns.tolist()
+
+            if not numeric_features and not categorical_features:
+                st.error("Не осталось признаков для обучения после обработки данных!")
+                return
             
             numeric_transformer = Pipeline(steps=[
                 ('imputer', SimpleImputer(strategy='median')),
@@ -327,22 +454,32 @@ def show_polynomial_regression():
                 ('onehot', OneHotEncoder(handle_unknown='ignore', sparse_output=False))
             ])
             
-            preprocessor = ColumnTransformer(
-                transformers=[
-                    ('num', numeric_transformer, numeric_features),
-                    ('cat', categorical_transformer, categorical_features)
-                ])
+            transformers = []
+            if numeric_features:
+                transformers.append(('num', numeric_transformer, numeric_features))
+            if categorical_features:
+                transformers.append(('cat', categorical_transformer, categorical_features))
+            
+            preprocessor = ColumnTransformer(transformers=transformers)
             
             full_pipeline = Pipeline(steps=[
                 ('preprocessor', preprocessor),
                 ('poly', PolynomialFeatures(degree=degree, include_bias=False))
             ])
             
-            X_processed = full_pipeline.fit_transform(X)
+            X_processed = full_pipeline.fit_transform(X_clean)
+
+            if X_processed.shape[0] == 0:
+                st.error("После преобразований не осталось данных для обучения!")
+                return
             
             X_train, X_test, y_train, y_test = train_test_split(
-                X_processed, y, test_size=test_size, random_state=random_state
+                X_processed, y_clean, test_size=test_size, random_state=random_state
             )
+            
+            if len(X_test) == 0:
+                st.error("Тестовая выборка пустая! Уменьшите размер тестовой выборки.")
+                return
             
             model = LinearRegression()
             model.fit(X_train, y_train)
@@ -361,23 +498,35 @@ def show_polynomial_regression():
             st.session_state.model_features = selected_features
             st.session_state.target_column = target_col
             
-            all_predictions = model.predict(full_pipeline.transform(analysis_data[selected_features]))
+            st.session_state.analysis_results = {
+                'train_samples': len(X_train),
+                'r2_score': r2,
+                'rmse': rmse,
+                'mae': mae
+            }
             
-            forecast_df = analysis_data[['Номер квартиры'] + selected_features].copy()
-            forecast_df['Фактическая цена'] = analysis_data[target_col]
-            forecast_df['Прогноз на 2026 год'] = all_predictions
-            forecast_df['Изменение, %'] = ((forecast_df['Прогноз на 2026 год'] - forecast_df['Фактическая цена']) / 
-                                         forecast_df['Фактическая цена'] * 100)
-            
-            st.subheader("📊 Прогноз цен на 2026 год")
-            st.dataframe(
-                forecast_df.style.format({
-                    'Фактическая цена': '{:,.0f}',
-                    'Прогноз на 2026 год': '{:,.0f}',
-                    'Изменение, %': '{:.1f}%'
-                }),
-                height=400
-            )
+            try:
+                all_predictions = model.predict(full_pipeline.transform(X))
+                
+                forecast_df = analysis_data[['Номер квартиры'] + selected_features].copy()
+                forecast_df['Фактическая цена'] = analysis_data[target_col]
+                forecast_df['Прогноз на 2026 год'] = all_predictions
+                forecast_df['Изменение, %'] = ((forecast_df['Прогноз на 2026 год'] - forecast_df['Фактическая цена']) / 
+                                             forecast_df['Фактическая цена'] * 100)
+                
+                st.subheader("📊 Прогноз цен на 2026 год")
+                st.dataframe(
+                    forecast_df.style.format({
+                        'Фактическая цена': '{:,.0f}',
+                        'Прогноз на 2026 год': '{:,.0f}',
+                        'Изменение, %': '{:.1f}%'
+                    }),
+                    height=400
+                )
+                
+            except Exception as e:
+                st.warning(f"Не удалось сделать прогноз для всех данных: {e}")
+                st.info("Отображаются результаты только для тестовой выборки")
             
             col1, col2, col3, col4 = st.columns(4)
             with col1:
@@ -398,8 +547,25 @@ def show_polynomial_regression():
             with st.expander("Детали предсказаний (тестовая выборка)"):
                 st.dataframe(test_results_df.head(10))
             
+            if PPTX_AVAILABLE and st.session_state.filtered_apartments is not None:
+                if st.button("📊 Выгрузить презентацию с результатами прогноза"):
+                    presentation_path = create_presentation(
+                        st.session_state.filtered_apartments, 
+                        st.session_state.analysis_results
+                    )
+                    if presentation_path:
+                        with open(presentation_path, "rb") as file:
+                            btn = st.download_button(
+                                label="⬇️ Скачать презентацию с прогнозом",
+                                data=file,
+                                file_name=f"прогноз_недвижимости_{datetime.now().strftime('%Y%m%d_%H%M')}.pptx",
+                                mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                            )
+                        os.unlink(presentation_path)
+            
         except Exception as e:
             st.error(f"Ошибка при обучении модели: {str(e)}")
+            st.info("Попробуйте выбрать меньше признаков или уменьшить степень полинома")
 
 if 'target_section' in st.session_state:
     section = st.session_state.target_section
