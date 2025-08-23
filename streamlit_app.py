@@ -323,12 +323,7 @@ def show_polynomial_regression():
             model = LinearRegression()
             model.fit(X_train, y_train)
             
-            y_pred = model.predict(X_test)
-            mae = mean_absolute_error(y_test, y_pred)
-            mse = mean_squared_error(y_test, y_pred)
-            rmse = np.sqrt(mse)
-            r2 = r2_score(y_test, y_pred)
-            
+          
             st.success("Модель успешно обучена!")
             st.session_state.trained_model = model
             st.session_state.model_pipeline = full_pipeline
